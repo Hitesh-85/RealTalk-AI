@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "nodemon index.ts",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
@@ -13,6 +13,7 @@
     "bcryptjs": "^3.0.3",
     "mongoose": "^9.9.2",
     "next": "16.3.0",
+    "next-auth": "^4.24.15",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-email": "^6.9.2",
