@@ -15,7 +15,7 @@ export async function POST(req: Request) {
       providerOptions: {
         google: {
           thinkingConfig: {
-            thinkingLevel: "minimal", // ✅ correct param for Gemini 3.x — was thinkingBudget
+            thinkingLevel: "minimal",
           },
         },
       },

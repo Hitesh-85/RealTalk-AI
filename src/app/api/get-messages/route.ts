@@ -12,10 +12,7 @@ export async function GET() {
   const user: User = session?.user as User;
   if (!session || !session.user) {
     return Response.json(
-      {
-        success: false,
-        message: "Not Authenticated",
-      },
+      { success: false, message: "Not Authenticated" },
       { status: 401 },
     );
   }
@@ -23,37 +20,39 @@ export async function GET() {
   const userId = new mongoose.Types.ObjectId(user._id);
 
   try {
-    const user = await UserModel.aggregate([
+    const messagesResult = await UserModel.aggregate([
       { $match: { _id: userId } },
-      { $unwind: "$messages" },
+      { $unwind: { path: "$messages", preserveNullAndEmptyArrays: true } },
       { $sort: { "messages.createdAt": -1 } },
       { $group: { _id: "$_id", messages: { $push: "$messages" } } },
+      {
+        $project: {
+          messages: {
+            $filter: {
+              input: "$messages",
+              as: "m",
+              cond: { $ne: ["$$m", null] },
+            },
+          },
+        },
+      },
     ]);
 
-    if(!user || user.length === 0) {
+    if (!messagesResult || messagesResult.length === 0) {
       return Response.json(
-        {
-          success: false,
-          message: "User not found",
-        },
+        { success: false, message: "User not found" },
         { status: 404 },
       );
     }
 
     return Response.json(
-      {
-        success: true,
-        messages: user[0].messages,
-      },
+      { success: true, messages: messagesResult[0].messages },
       { status: 200 },
     );
   } catch (error) {
     console.error("Failed to retrieve messages", error);
     return Response.json(
-      {
-        success: false,
-        message: "Failed to retrieve messages",
-      },
+      { success: false, message: "Failed to retrieve messages" },
       { status: 500 },
     );
   }
