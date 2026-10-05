@@ -59,51 +59,92 @@
 
 ## 🏗️ System Architecture
 
-The following diagram illustrates the end-to-end architecture of RealTalk AI across client interfaces, Next.js server runtime, database storage, and external third-party services.
-
 ```mermaid
 flowchart TD
-    subgraph Client["Frontend Client (Next.js / React 19)"]
-        UI_Dash["User Dashboard (/dashboard)"]
-        UI_Public["Public Message Page (/u/:username)"]
-        UI_Auth["Auth Pages (/sign-in, /sign-up, /verify)"]
+    %% Actor Nodes
+    subgraph Actors["👥 User Roles"]
+        A1["👤 Registered User<br/><i>(Account Owner)</i>"]
+        A2["🕵️ Anonymous Visitor<br/><i>(Public Sender / No Login)</i>"]
     end
 
-    subgraph AppRouter["Next.js Server Runtime (App Router)"]
+    %% Application API Routes
+    subgraph Public["🌐 Public API Routes — No Session Required"]
         direction TB
-        MW["Middleware / Proxy (/src/proxy.ts)"]
-        AuthHandler["NextAuth Handler (/api/auth/[...nextauth])"]
-        
-        subgraph Endpoints["API Route Handlers"]
-            API_UserCheck["GET /api/check-username-unique"]
-            API_SignUp["POST /api/sign-up"]
-            API_Verify["POST /api/verify-code"]
-            API_Accept["GET & POST /api/accept-messages"]
-            API_GetMsgs["GET /api/get-messages"]
-            API_SendMsg["POST /api/send-message"]
-            API_DelMsg["DELETE /api/delete-message/:messageid"]
-            API_AI["POST /api/suggest-messages"]
-        end
+        P1["POST /api/sign-up"]
+        P2["POST /api/verify-code"]
+        P3["GET /api/check-username-unique"]
+        P4["POST /api/send-message"]
+        P5["POST /api/suggest-messages"]
     end
 
-    subgraph DataServices["Persistence & External Services"]
-        MongoDB[("MongoDB Database\n(Mongoose ORM)")]
-        ResendAPI["Resend Email Service\n(OTP Delivery)"]
-        GeminiAPI["Google Gemini 3.6 Flash\n(Vercel AI SDK)"]
+    subgraph AuthFlow["🔐 Authentication (NextAuth)"]
+        direction TB
+        L1["authorize()<br/>• Find user by email/username<br/>• Verify with bcrypt.compare()"]
+        L2["JWT Session Cookie Issued<br/><i>(Persisted in browser)</i>"]
+        L1 --> L2
     end
 
-    %% Client to App Router
-    UI_Auth -->|Credentials / JWT| AuthHandler
-    UI_Auth -->|Validation & Registration| API_UserCheck & API_SignUp & API_Verify
-    UI_Dash -->|Session Bearer Cookie| API_Accept & API_GetMsgs & API_DelMsg
-    UI_Public -->|Anonymous Post| API_SendMsg
-    UI_Public -->|Stream Request| API_AI
+    subgraph Protected["🛡️ Protected API Routes — Session Required"]
+        direction TB
+        S1["GET & POST /api/accept-messages"]
+        S2["GET /api/get-messages"]
+        S3["DELETE /api/delete-message/:id"]
+    end
 
-    %% App Router to External
-    API_SignUp -->|Send OTP| ResendAPI
-    API_AI -->|streamText| GeminiAPI
-    AuthHandler & API_SignUp & API_Verify & API_Accept & API_GetMsgs & API_SendMsg & API_DelMsg -->|dbConnect| MongoDB
+    %% Data & External Services
+    subgraph External["📦 Database & External Services"]
+        DB[("🗄️ MongoDB Atlas<br/>Users Collection<br/><i>(Embedded Messages)</i>")]
+        Resend["📧 Resend API<br/>OTP Verification Email"]
+        Gemini["🤖 Google Gemini 3.6 Flash<br/>via Vercel AI SDK"]
+    end
+
+    %% Flows for Registered User
+    A1 -->|"Sign up & Check username"| P1 & P3
+    A1 -->|"Submit OTP"| P2
+    P1 -->|"Dispatch OTP email"| Resend
+    P1 -->|"Save unverified user"| DB
+    P2 -->|"Set isVerified: true"| DB
+    P3 -->|"Query username uniqueness"| DB
+
+    A1 -->|"Log in with credentials"| L1
+    L1 -.->|"Lookup & compare password"| DB
+    L2 -->|"Authenticated requests (Cookie sent)"| Protected
+
+    Protected -->|"getServerSession() verifies cookie<br/>Scoped strictly to session.user._id"| DB
+
+    %% Flows for Anonymous Visitor
+    A2 -->|"Visits /u/:username & sends message"| P4
+    P4 -->|"Push to user.messages"| DB
+
+    A2 -->|"Requests prompt ideas"| P5
+    P5 -->|"streamText()"| Gemini
+
+    %% Visual Styling Classes
+    classDef actor fill:#EEF2FF,stroke:#6366F1,stroke-width:2px,color:#1E1B4B;
+    classDef public fill:#FEF3C7,stroke:#F59E0B,stroke-width:1.5px,color:#78350F;
+    classDef auth fill:#E0F2FE,stroke:#0284C7,stroke-width:1.5px,color:#0C4A6E;
+    classDef protected fill:#DCFCE7,stroke:#16A34A,stroke-width:1.5px,color:#14532D;
+    classDef db fill:#FFEDD5,stroke:#EA580C,stroke-width:2px,color:#7C2D12;
+    classDef service fill:#F3E8FF,stroke:#9333EA,stroke-width:1.5px,color:#581C87;
+
+    class A1,A2 actor;
+    class P1,P2,P3,P4,P5 public;
+    class L1,L2 auth;
+    class S1,S2,S3 protected;
+    class DB db;
+    class Resend,Gemini service;
 ```
+
+### How It Works
+
+1. **Public API Routes** (`/api/sign-up`, `/api/verify-code`, `/api/check-username-unique`, `/api/send-message`, `/api/suggest-messages`):
+   - Require no session or authentication token—accessible by design to any client.
+2. **NextAuth Authentication Gateway**:
+   - Handles login via custom `CredentialsProvider`. The `authorize()` callback verifies the username/email and matches passwords using `bcrypt.compare()`. Once verified, a signed JWT session cookie is issued to the browser.
+3. **Protected API Routes** (`/api/accept-messages`, `/api/get-messages`, `/api/delete-message`):
+   - Guarded server-side using `getServerSession(authOptions)`. Every MongoDB query and update is strictly scoped to `session.user._id`, eliminating trust in client-supplied identifiers.
+4. **Anonymous Visitors (Senders)**:
+   - Only touch public endpoints. Senders can post messages to recipient public profile URLs (`/u/[username]`) or request streamed prompt questions from Google Gemini without ever interacting with user sessions or auth tokens.
 
 ## 🔄 Application Flow
 
