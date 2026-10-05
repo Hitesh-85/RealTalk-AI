@@ -9,10 +9,7 @@
 - [Overview](#-overview)
 - [Key Features](#-key-features)
 - [System Architecture](#-system-architecture)
-- [Flow Diagrams](#-flow-diagrams)
-  - [1. User Registration & Verification Flow](#1-user-registration--email-otp-verification)
-  - [2. Anonymous Message & AI Suggestion Flow](#2-anonymous-message--ai-suggestion-flow)
-  - [3. MongoDB Aggregation Pipeline](#3-mongodb-message-aggregation-pipeline)
+- [Application Flow](#-application-flow)
 - [Tech Stack](#-tech-stack)
 - [Data Models & Schema](#-data-models--schema)
 - [API Reference](#-api-reference)
@@ -108,99 +105,63 @@ flowchart TD
     AuthHandler & API_SignUp & API_Verify & API_Accept & API_GetMsgs & API_SendMsg & API_DelMsg -->|dbConnect| MongoDB
 ```
 
----
+## 🔄 Application Flow
 
-## 🔄 Flow Diagrams
-
-### 1. User Registration & Email OTP Verification
+### User Registration & Verification
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    actor User as New User
-    participant Client as Web Browser
-    participant SignUpAPI as POST /api/sign-up
-    participant DB as MongoDB
-    participant Resend as Resend Email Service
-    participant VerifyAPI as POST /api/verify-code
-
-    User->>Client: Enters username, email, password
-    Client->>SignUpAPI: Submit signup payload
-    SignUpAPI->>DB: Check if verified user exists with username
-    SignUpAPI->>DB: Check if email exists
-    Note over SignUpAPI: Hash password with bcrypt (salt 10)<br/>Generate 6-digit OTP code (1 hr expiry)
-    SignUpAPI->>DB: Save user (isVerified: false)
-    SignUpAPI->>Resend: Dispatch VerificationEmail template
-    Resend-->>User: Delivers 6-digit OTP to inbox
-    SignUpAPI-->>Client: Returns 201 Created
-    Client->>Client: Redirects to /verify/[username]
-    User->>Client: Enters 6-digit OTP
-    Client->>VerifyAPI: Submit { username, code }
-    VerifyAPI->>DB: Fetch user by decoded username
-    VerifyAPI->>VerifyAPI: Validate code match & expiry timestamp
-    VerifyAPI->>DB: Set isVerified = true, persist user
-    VerifyAPI-->>Client: Returns 200 OK
-    Client->>Client: Redirect to /sign-in
+flowchart TD
+    A["User visits /sign-up"] --> B["Fills username, email, password"]
+    B --> C{"Username available?"}
+    C -- No --> B
+    C -- Yes --> D["Submit registration form"]
+    D --> E["Server hashes password with Bcrypt"]
+    E --> F["Generate 6-digit OTP (1hr expiry)"]
+    F --> G["Save user to MongoDB (isVerified: false)"]
+    G --> H["Send OTP email via Resend"]
+    H --> I["Redirect to /verify/username"]
+    I --> J["User enters OTP code"]
+    J --> K{"Code valid & not expired?"}
+    K -- No --> L["Show error, retry"]
+    K -- Yes --> M["Set isVerified = true"]
+    M --> N["Redirect to /sign-in"]
+    N --> O["User logs in via NextAuth"]
+    O --> P["JWT session created → Dashboard"]
 ```
 
----
-
-### 2. Anonymous Message & AI Suggestion Flow
+### Anonymous Messaging & AI Suggestions
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    actor Sender as Anonymous Sender
-    participant PublicUI as /u/[username] Page
-    participant AISuggestAPI as POST /api/suggest-messages
-    participant Gemini as Google Gemini 3.6 Flash
-    participant SendMsgAPI as POST /api/send-message
-    participant DB as MongoDB
-
-    Sender->>PublicUI: Visits recipient's public link
-    opt Sender requests prompt ideas
-        Sender->>PublicUI: Clicks "Suggest Messages"
-        PublicUI->>AISuggestAPI: Request prompts
-        AISuggestAPI->>Gemini: streamText() with social icebreaker system prompt
-        Gemini-->>AISuggestAPI: Token stream
-        AISuggestAPI-->>PublicUI: Streams delimited string ("Q1||Q2||Q3")
-        PublicUI->>PublicUI: Parses into clickable prompt cards
-        Sender->>PublicUI: Clicks preferred suggestion (populates textarea)
-    end
-    Sender->>PublicUI: Types message & clicks "Send It"
-    PublicUI->>SendMsgAPI: POST { username, content }
-    SendMsgAPI->>DB: Look up user by username
-    alt User not found
-        SendMsgAPI-->>PublicUI: 404 User Not Found
-    else User is not accepting messages
-        SendMsgAPI-->>PublicUI: 403 Forbidden (Intake Disabled)
-    else User accepting messages
-        SendMsgAPI->>DB: user.messages.push({ content, createdAt })
-        SendMsgAPI->>DB: Save updated user document
-        SendMsgAPI-->>PublicUI: 200 Message Sent Successfully
-        PublicUI->>Sender: Clears form & displays Sonner toast
-    end
+flowchart TD
+    A["Anyone visits /u/username"] --> B{"Need message ideas?"}
+    B -- Yes --> C["Click 'Suggest Messages'"]
+    C --> D["Gemini AI streams 3 questions"]
+    D --> E["Click a suggestion to auto-fill"]
+    E --> F["Write/edit message"]
+    B -- No --> F
+    F --> G["Click 'Send It'"]
+    G --> H{"User found?"}
+    H -- No --> I["404 Error"]
+    H -- Yes --> J{"Accepting messages?"}
+    J -- No --> K["403 Forbidden"]
+    J -- Yes --> L["Push message into user's embedded array"]
+    L --> M["Message saved to MongoDB"]
+    M --> N["Success toast notification"]
 ```
 
----
-
-### 3. MongoDB Message Aggregation Pipeline
-
-Because messages are stored as embedded documents within each user's record, a standard query cannot sort embedded array elements descending by date without loading all items into memory. RealTalk AI utilizes an optimized 5-stage MongoDB Aggregation Pipeline:
+### Dashboard Message Flow
 
 ```mermaid
 flowchart LR
-    Stage1["1. $match<br/>Filter by User _id"]
-    Stage2["2. $unwind<br/>Flatten messages array<br/>(preserveNullAndEmptyArrays)"]
-    Stage3["3. $sort<br/>Sort messages.createdAt (-1)"]
-    Stage4["4. $group<br/>Reassemble into user doc<br/>$push sorted messages"]
-    Stage5["5. $project<br/>$filter out null placeholders"]
-
-    Stage1 --> Stage2 --> Stage3 --> Stage4 --> Stage5
+    A["User opens /dashboard"] --> B["Fetch messages via aggregation pipeline"]
+    B --> C["$match → $unwind → $sort → $group → $project"]
+    C --> D["Display messages sorted newest-first"]
+    D --> E{"Actions"}
+    E --> F["Toggle accept/reject messages"]
+    E --> G["Copy shareable profile link"]
+    E --> H["Delete a message"]
+    E --> I["Refresh inbox"]
 ```
-
-> [!NOTE]
-> Setting `preserveNullAndEmptyArrays: true` in `$unwind` prevents MongoDB from dropping users who have received 0 messages, ensuring brand new accounts receive a clean empty array `[]` rather than an erroneous 404.
 
 ---
 
@@ -352,7 +313,6 @@ realtalk-ai/
 ├── components.json                 # Shadcn UI configuration
 ├── next.config.ts                  # Next.js build configuration
 ├── package.json                    # Project dependencies & scripts
-├── RealTalk_AI_Notes.md            # In-depth architectural notes & interview guide
 └── tsconfig.json                   # TypeScript configuration
 ```
 
