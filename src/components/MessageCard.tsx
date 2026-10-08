@@ -44,26 +44,35 @@ export function MessageCard({ message, onMessageDelete }: MessageCardProps) {
   };
 
   return (
-    <Card className="card-bordered">
+    <Card className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/60 shadow-sm transition-colors duration-200">
       <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle>{message.content}</CardTitle>
+        <div className="flex justify-between items-start gap-4">
+          <CardTitle className="text-base sm:text-lg font-semibold text-neutral-900 dark:text-neutral-100 leading-snug">
+            {message.content}
+          </CardTitle>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive">
-                <X className="w-5 h-5" />
+              <Button
+                variant="destructive"
+                size="icon"
+                className="w-8 h-8 rounded-lg shrink-0 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete
-                  this message.
+                <AlertDialogTitle className="text-neutral-950 dark:text-white">
+                  Are you absolutely sure?
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-neutral-600 dark:text-neutral-400">
+                  This action cannot be undone. This will permanently delete this message.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel className="border-neutral-300 dark:border-neutral-700">
+                  Cancel
+                </AlertDialogCancel>
                 <AlertDialogAction onClick={handleDeleteConfirm}>
                   Continue
                 </AlertDialogAction>
@@ -71,7 +80,7 @@ export function MessageCard({ message, onMessageDelete }: MessageCardProps) {
             </AlertDialogContent>
           </AlertDialog>
         </div>
-        <div className="text-sm">
+        <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-3 font-mono">
           {dayjs(message.createdAt).format('MMM D, YYYY h:mm A')}
         </div>
       </CardHeader>

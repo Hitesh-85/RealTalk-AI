@@ -31,15 +31,11 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  const isAuthPage =
-    pathname.startsWith("/sign-in") ||
-    pathname.startsWith("/sign-up") ||
-    pathname.startsWith("/verify");
-
+  const isSignInPage = pathname.startsWith("/sign-in");
   const isDashboard = pathname.startsWith("/dashboard");
 
-  // Logged-in user trying to access auth pages
-  if (token && isAuthPage) {
+  // Logged-in user trying to access sign-in page
+  if (token && isSignInPage) {
     return NextResponse.redirect(
       new URL("/dashboard", request.url)
     );

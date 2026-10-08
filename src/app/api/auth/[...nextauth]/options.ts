@@ -22,6 +22,33 @@ export const authOptions: NextAuthOptions = {
             throw new Error("Missing credentials");
           }
 
+          // Instant Guest Login handler for testing
+          if (
+            (credentials.identifier === "guest" || credentials.identifier === "guest@realtalk.ai") &&
+            credentials.password === "guest123"
+          ) {
+            let guestUser = await UserModel.findOne({ username: "guest" });
+            if (!guestUser) {
+              const hashedPassword = await bcrypt.hash("guest123", 10);
+              guestUser = await UserModel.create({
+                username: "guest",
+                email: "guest@realtalk.ai",
+                password: hashedPassword,
+                verifyCode: "000000",
+                verifyCodeExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+                isVerified: true,
+                isAcceptingMessage: true,
+                messages: [
+                  {
+                    content: "Welcome to RealTalk AI! This is a pre-loaded test message in your guest inbox.",
+                    createdAt: new Date(),
+                  },
+                ],
+              });
+            }
+            return guestUser as unknown as import("next-auth").User;
+          }
+
           const user = await UserModel.findOne({
             $or: [
               { email: credentials.identifier },

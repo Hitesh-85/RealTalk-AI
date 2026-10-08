@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useDebounceCallback } from 'usehooks-ts'; // verify this export still exists in your installed version
+import { useDebounceCallback } from 'usehooks-ts';
 import * as z from 'zod';
 
 import { Button } from '@/src/components/ui/button';
@@ -23,6 +23,7 @@ import axios, { AxiosError } from 'axios';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { signUpSchema } from '@/src/schemas/signUpSchema';
+import { ThemeToggle } from '@/src/components/ThemeToggle';
 
 export default function SignUpForm() {
   const [username, setUsername] = useState('');
@@ -93,24 +94,42 @@ export default function SignUpForm() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-800">
-      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
-        <div className="text-center">
-          <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6">
-            Join True Feedback
-          </h1>
-          <p className="mb-4">Sign up to start your anonymous adventure</p>
+    <div className="flex flex-col justify-center items-center min-h-screen bg-background text-foreground transition-colors duration-200 p-4">
+      <div className="w-full max-w-md p-8 bg-card text-card-foreground border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-sm space-y-6">
+        {/* Top Navigation Bar inside Card */}
+        <div className="flex items-center justify-between pb-2 border-b border-neutral-100 dark:border-neutral-800">
+          <Link
+            href="/"
+            className="text-xs font-semibold text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
+          >
+            ← Back to Home
+          </Link>
+          <ThemeToggle />
         </div>
+
+        <div className="text-center">
+          <h1 className="text-3xl font-extrabold tracking-tight mb-2 text-neutral-950 dark:text-white">
+            Create an Account
+          </h1>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            Sign up to start your anonymous messaging board
+          </p>
+        </div>
+
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               name="username"
               control={form.control}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Username</FormLabel>
+                  <FormLabel className="text-sm font-semibold text-neutral-900 dark:text-neutral-200">
+                    Username
+                  </FormLabel>
                   <FormControl>
                     <Input
+                      placeholder="Choose a username"
+                      className="bg-neutral-100/70 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
                       {...field}
                       onChange={(e) => {
                         field.onChange(e);
@@ -118,19 +137,24 @@ export default function SignUpForm() {
                       }}
                     />
                   </FormControl>
-                  {isCheckingUsername && <Loader2 className="animate-spin" />}
+                  {isCheckingUsername && (
+                    <div className="flex items-center gap-2 text-xs text-neutral-500">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Checking username...
+                    </div>
+                  )}
                   {!isCheckingUsername && usernameMessage && (
                     <p
-                      className={`text-sm ${
-                        usernameMessage.toLowerCase() === 'username is unique'
-                          ? 'text-green-500'
-                          : 'text-red-500'
+                      className={`text-xs font-semibold ${
+                        usernameMessage.toLowerCase().includes('unique')
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-red-600 dark:text-red-400'
                       }`}
                     >
                       {usernameMessage}
                     </p>
                   )}
-                  <FormMessage />
+                  <FormMessage className="text-xs text-red-600 dark:text-red-400 font-semibold" />
                 </FormItem>
               )}
             />
@@ -139,14 +163,20 @@ export default function SignUpForm() {
               control={form.control}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel className="text-sm font-semibold text-neutral-900 dark:text-neutral-200">
+                    Email Address
+                  </FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input
+                      placeholder="Enter your email"
+                      className="bg-neutral-100/70 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
+                      {...field}
+                    />
                   </FormControl>
-                  <p className="text-muted text-gray-400 text-sm">
-                    We will send you a verification code
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                    We will send a 6-digit verification code to this email.
                   </p>
-                  <FormMessage />
+                  <FormMessage className="text-xs text-red-600 dark:text-red-400 font-semibold" />
                 </FormItem>
               )}
             />
@@ -156,19 +186,30 @@ export default function SignUpForm() {
               control={form.control}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel className="text-sm font-semibold text-neutral-900 dark:text-neutral-200">
+                    Password
+                  </FormLabel>
                   <FormControl>
-                    <Input type="password" {...field} />
+                    <Input
+                      type="password"
+                      placeholder="Create a strong password"
+                      className="bg-neutral-100/70 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
+                      {...field}
+                    />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-xs text-red-600 dark:text-red-400 font-semibold" />
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              className="w-full bg-neutral-950 hover:bg-neutral-800 text-white dark:bg-white dark:text-black dark:hover:bg-neutral-200 font-semibold cursor-pointer shadow-sm mt-2"
+              disabled={isSubmitting}
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Please wait
+                  Creating account...
                 </>
               ) : (
                 'Sign Up'
@@ -176,10 +217,14 @@ export default function SignUpForm() {
             </Button>
           </form>
         </Form>
-        <div className="text-center mt-4">
-          <p>
+
+        <div className="text-center pt-2 border-t border-neutral-100 dark:border-neutral-800">
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">
             Already a member?{' '}
-            <Link href="/sign-in" className="text-blue-600 hover:text-blue-800">
+            <Link
+              href="/sign-in"
+              className="text-blue-600 dark:text-blue-400 font-semibold hover:underline"
+            >
               Sign in
             </Link>
           </p>

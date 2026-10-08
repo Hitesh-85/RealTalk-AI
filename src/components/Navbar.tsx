@@ -1,35 +1,44 @@
-'use client'
+'use client';
 
 import React from 'react';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { Button } from './ui/button';
 import { User } from 'next-auth';
+import { ThemeToggle } from './ThemeToggle';
 
 function Navbar() {
   const { data: session } = useSession();
   const user = session?.user as User;
 
   return (
-    <nav className="p-4 md:p-6 shadow-md bg-gray-900 text-white">
-      <div className="container mx-auto flex flex-col md:flex-row justify-between items-center">
-        <a href="#" className="text-xl font-bold mb-4 md:mb-0">
+    <nav className="sticky top-0 z-50 w-full border-b border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-black/80 backdrop-blur-md transition-colors duration-200">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6">
+        <Link
+          href="/"
+          className="text-lg font-bold tracking-tight text-neutral-900 dark:text-white transition-opacity hover:opacity-80"
+        >
           True Feedback
-        </a>
-        {session ? (
-          <>
-            <span className="mr-4">
-              Welcome, {user.username || user.email}
-            </span>
-            <Button onClick={() => signOut()} className="w-full md:w-auto bg-slate-100 text-black" variant='outline'>
-              Logout
-            </Button>
-          </>
-        ) : (
-          <Link href="/sign-in">
-            <Button className="w-full md:w-auto bg-slate-100 text-black" variant={'outline'}>Login</Button>
-          </Link>
-        )}
+        </Link>
+
+        <div className="flex items-center gap-3">
+          {session && (
+            <div className="flex items-center gap-3 text-sm text-neutral-600 dark:text-neutral-300">
+              <span className="hidden sm:inline font-medium">
+                @{user.username || user.email}
+              </span>
+              <Button
+                onClick={() => signOut()}
+                size="sm"
+                variant="outline"
+                className="border-neutral-300 dark:border-neutral-700 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-900 dark:text-neutral-100 text-xs font-medium cursor-pointer"
+              >
+                Logout
+              </Button>
+            </div>
+          )}
+          <ThemeToggle />
+        </div>
       </div>
     </nav>
   );

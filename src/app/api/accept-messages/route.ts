@@ -21,12 +21,13 @@ export async function POST(request: Request) {
   }
 
   const userId = user._id;
-  const { acceptMessage } = await request.json(); // Update the user document to set acceptedMessages to true
+  const body = await request.json();
+  const acceptMessages = body.acceptMessages ?? body.acceptMessage;
 
   try {
     const updatedUser = await UserModel.findByIdAndUpdate(
       userId,
-      { isAcceptingMessage: acceptMessage },
+      { isAcceptingMessage: acceptMessages },
       { new: true },
     );
 
@@ -36,15 +37,15 @@ export async function POST(request: Request) {
           success: false,
           message: "User not found",
         },
-        { status: 401 },
+        { status: 404 },
       );
     }
 
     return Response.json(
       {
         success: true,
-        message: "User status updated to accept messages",
-        updatedUser,
+        message: "User status updated successfully",
+        isAcceptingMessages: updatedUser.isAcceptingMessage,
       },
       { status: 200 },
     );

@@ -9,15 +9,16 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormControl, // ✅ added — was missing
+  FormControl,
   FormMessage,
 } from "@/src/components/ui/form";
 import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner"; // ✅ replaced useToast import with sonner
+import { toast } from "sonner";
 import { signInSchema } from "@/src/schemas/signInSchema";
+import { ThemeToggle } from "@/src/components/ThemeToggle";
 
 export default function SignInForm() {
   const router = useRouter();
@@ -29,8 +30,6 @@ export default function SignInForm() {
       password: "",
     },
   });
-
-  // ✅ removed: const { toast } = useToast();  — no hook needed with sonner
 
   const onSubmit = async (data: z.infer<typeof signInSchema>) => {
     const result = await signIn("credentials", {
@@ -52,33 +51,51 @@ export default function SignInForm() {
     }
 
     if (result?.ok) {
-      // ✅ changed from result?.url to result?.ok
       router.replace("/dashboard");
     }
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-800">
-      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
-        <div className="text-center">
-          <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6">
-            Welcome Back to True Feedback
-          </h1>
-          <p className="mb-4">Sign in to continue your secret conversations</p>
+    <div className="flex flex-col justify-center items-center min-h-screen bg-background text-foreground transition-colors duration-200 p-4">
+      <div className="w-full max-w-md p-8 bg-card text-card-foreground border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-sm space-y-6">
+        {/* Top Navigation Bar inside Card */}
+        <div className="flex items-center justify-between pb-2 border-b border-neutral-100 dark:border-neutral-800">
+          <Link
+            href="/"
+            className="text-xs font-semibold text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
+          >
+            ← Back to Home
+          </Link>
+          <ThemeToggle />
         </div>
+
+        <div className="text-center">
+          <h1 className="text-3xl font-extrabold tracking-tight mb-2 text-neutral-950 dark:text-white">
+            Welcome Back
+          </h1>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            Sign in to continue your secret conversations
+          </p>
+        </div>
+
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               name="identifier"
               control={form.control}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email/Username</FormLabel>
+                  <FormLabel className="text-sm font-semibold text-neutral-900 dark:text-neutral-200">
+                    Email / Username
+                  </FormLabel>
                   <FormControl>
-                    {/* ✅ wrapped Input in FormControl */}
-                    <Input {...field} />
+                    <Input
+                      placeholder="Enter your email or username"
+                      className="bg-neutral-100/70 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
+                      {...field}
+                    />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-xs text-red-600 dark:text-red-400 font-semibold" />
                 </FormItem>
               )}
             />
@@ -87,28 +104,56 @@ export default function SignInForm() {
               control={form.control}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel className="text-sm font-semibold text-neutral-900 dark:text-neutral-200">
+                    Password
+                  </FormLabel>
                   <FormControl>
-                    {/* ✅ wrapped Input in FormControl */}
-                    <Input type="password" {...field} />
+                    <Input
+                      type="password"
+                      placeholder="Enter your password"
+                      className="bg-neutral-100/70 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
+                      {...field}
+                    />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-xs text-red-600 dark:text-red-400 font-semibold" />
                 </FormItem>
               )}
             />
             <Button
-              className="w-full"
+              className="w-full bg-neutral-950 hover:bg-neutral-800 text-white dark:bg-white dark:text-black dark:hover:bg-neutral-200 font-semibold cursor-pointer shadow-sm mt-2"
               type="submit"
-              disabled={form.formState.isSubmitting} // ✅ prevents double-submit
+              disabled={form.formState.isSubmitting}
             >
               {form.formState.isSubmitting ? "Signing in..." : "Sign In"}
             </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-300 hover:bg-amber-500/20 font-medium cursor-pointer"
+              onClick={async () => {
+                const res = await signIn("credentials", {
+                  redirect: false,
+                  identifier: "guest",
+                  password: "guest123",
+                });
+                if (res?.ok) {
+                  router.replace("/dashboard");
+                }
+              }}
+            >
+              ⚡ Instant Guest Login (For Testing)
+            </Button>
           </form>
         </Form>
-        <div className="text-center mt-4">
-          <p>
+
+        <div className="text-center pt-2 border-t border-neutral-100 dark:border-neutral-800">
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">
             Not a member yet?{" "}
-            <Link href="/sign-up" className="text-blue-600 hover:text-blue-800">
+            <Link
+              href="/sign-up"
+              className="text-blue-600 dark:text-blue-400 font-semibold hover:underline"
+            >
               Sign up
             </Link>
           </p>

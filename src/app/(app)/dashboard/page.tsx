@@ -91,11 +91,13 @@ function UserDashboard() {
   }, [session,setValue, fetchAcceptMessages, fetchMessages]);
 
   const handleSwitchChange = async () => {
+    setIsSwitchLoading(true);
     try {
+      const newStatus = !acceptMessages;
       const response = await axios.post<ApiResponse>("/api/accept-messages", {
-        acceptMessages: !acceptMessages,
+        acceptMessages: newStatus,
       });
-      setValue("acceptMessages", !acceptMessages);
+      setValue("acceptMessages", newStatus);
       toast.success(response.data.message);
     } catch (error) {
       const axiosError = error as AxiosError<ApiResponse>;
@@ -104,6 +106,8 @@ function UserDashboard() {
           axiosError.response?.data.message ??
           "Failed to update message settings",
       });
+    } finally {
+      setIsSwitchLoading(false);
     }
   };
 
@@ -124,36 +128,45 @@ function UserDashboard() {
   };
 
   return (
-    <div className="my-8 mx-4 md:mx-8 lg:mx-auto p-6 bg-white rounded w-full max-w-6xl">
-      <h1 className="text-4xl font-bold mb-4">User Dashboard</h1>
+    <div className="my-8 mx-4 md:mx-8 lg:mx-auto p-6 sm:p-8 bg-card text-neutral-900 dark:text-neutral-100 border border-neutral-200 dark:border-neutral-800 rounded-2xl w-full max-w-6xl shadow-sm transition-colors duration-200">
+      <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-6 text-neutral-950 dark:text-white">
+        User Dashboard
+      </h1>
 
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold mb-2">Copy Your Unique Link</h2>{" "}
-        <div className="flex items-center">
+      <div className="mb-6">
+        <h2 className="text-sm font-semibold mb-2 text-neutral-800 dark:text-neutral-200">
+          Copy Your Unique Link
+        </h2>
+        <div className="flex items-center gap-2">
           <input
             type="text"
             value={profileUrl}
             disabled
-            className="input input-bordered w-full p-2 mr-2"
+            className="w-full p-2.5 rounded-lg border border-neutral-300 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100 font-mono text-sm select-all"
           />
-          <Button onClick={copyToClipboard}>Copy</Button>
+          <Button
+            onClick={copyToClipboard}
+            className="bg-neutral-900 hover:bg-neutral-800 text-white dark:bg-white dark:text-black dark:hover:bg-neutral-200 font-medium cursor-pointer"
+          >
+            Copy
+          </Button>
         </div>
       </div>
 
-      <div className="mb-4">
+      <div className="mb-6 flex items-center">
         <Switch
           checked={acceptMessages}
           onCheckedChange={handleSwitchChange}
           disabled={isSwitchLoading}
         />
-        <span className="ml-2">
+        <span className="ml-3 font-medium text-sm text-neutral-900 dark:text-neutral-100">
           Accept Messages: {acceptMessages ? "On" : "Off"}
         </span>
       </div>
-      <Separator />
+      <Separator className="border-neutral-200 dark:border-neutral-800" />
 
       <Button
-        className="mt-4"
+        className="mt-6 border-neutral-300 dark:border-neutral-700 cursor-pointer"
         variant="outline"
         onClick={(e) => {
           e.preventDefault();
@@ -161,12 +174,12 @@ function UserDashboard() {
         }}
       >
         {isLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="h-4 w-4 animate-spin text-neutral-900 dark:text-neutral-100" />
         ) : (
-          <RefreshCcw className="h-4 w-4" />
+          <RefreshCcw className="h-4 w-4 text-neutral-900 dark:text-neutral-100" />
         )}
       </Button>
-      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
         {messages.length > 0 ? (
           messages.map((message) => (
             <MessageCard
@@ -176,7 +189,9 @@ function UserDashboard() {
             />
           ))
         ) : (
-          <p>No messages to display.</p>
+          <p className="text-neutral-600 dark:text-neutral-400 font-medium">
+            No messages to display.
+          </p>
         )}
       </div>
     </div>
